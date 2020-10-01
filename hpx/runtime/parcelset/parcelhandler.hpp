@@ -35,6 +35,7 @@
 #include <mutex>
 #include <sstream>
 #include <string>
+#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -43,7 +44,7 @@
 namespace hpx { namespace parcelset
 {
     // default callback for put_parcel
-    void default_write_handler(boost::system::error_code const&,
+    void default_write_handler(std::error_code const&,
         parcel const& p);
 
     /// The \a parcelhandler is the representation of the parcelset inside a
@@ -176,7 +177,7 @@ namespace hpx { namespace parcelset
         ///                 function object is expected to be:
         ///
         /// \code
-        ///     void f (boost::system::error_code const& err, std::size_t );
+        ///     void f (std::error_code const& err, std::size_t );
         /// \endcode
         ///
         ///                 where \a err is the status code of the operation and
@@ -195,7 +196,7 @@ namespace hpx { namespace parcelset
         ///                 id (if not already set).
         HPX_FORCEINLINE void put_parcel(parcel p)
         {
-            auto f = [this](boost::system::error_code const& ec,
+            auto f = [this](std::error_code const& ec,
                          parcel const& p) -> void {
                 invoke_write_handler(ec, p);
             };
@@ -216,7 +217,7 @@ namespace hpx { namespace parcelset
         ///                 of these function object are expected to be:
         ///
         /// \code
-        ///     void f (boost::system::error_code const& err, std::size_t );
+        ///     void f (std::error_code const& err, std::size_t );
         /// \endcode
         ///
         ///                 where \a err is the status code of the operation and
@@ -236,7 +237,7 @@ namespace hpx { namespace parcelset
         void put_parcels(std::vector<parcel> parcels)
         {
             std::vector<write_handler_type> handlers(parcels.size(),
-                [this](boost::system::error_code const& ec, parcel const& p)
+                [this](std::error_code const& ec, parcel const& p)
                     -> void { return invoke_write_handler(ec, p); });
 
             put_parcels(std::move(parcels), std::move(handlers));
@@ -402,7 +403,7 @@ namespace hpx { namespace parcelset
 
         // manage default exception handler
         void invoke_write_handler(
-            boost::system::error_code const& ec, parcel const & p) const
+            std::error_code const& ec, parcel const & p) const
         {
             write_handler_type f;
             {

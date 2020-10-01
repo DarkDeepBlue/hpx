@@ -11,32 +11,33 @@
 
 #if defined(HPX_HAVE_NETWORKING)
 #include <hpx/config/asio.hpp>
+#include <hpx/config/detail/compat_error_code.hpp>
 #include <hpx/assert.hpp>
 #include <hpx/async_distributed/applier/applier.hpp>
-#include <hpx/modules/errors.hpp>
-#include <hpx/modules/format.hpp>
 #include <hpx/functional/bind.hpp>
 #include <hpx/functional/bind_front.hpp>
 #include <hpx/functional/deferred_call.hpp>
 #include <hpx/io_service/io_service_pool.hpp>
+#include <hpx/modules/errors.hpp>
+#include <hpx/modules/format.hpp>
+#include <hpx/modules/futures.hpp>
 #include <hpx/modules/itt_notify.hpp>
 #include <hpx/modules/logging.hpp>
-#include <hpx/modules/futures.hpp>
+#include <hpx/modules/string_util.hpp>
+#include <hpx/modules/threadmanager.hpp>
 #include <hpx/performance_counters/counter_creators.hpp>
 #include <hpx/performance_counters/counters.hpp>
 #include <hpx/performance_counters/manage_counter_type.hpp>
 #include <hpx/preprocessor/stringize.hpp>
 #include <hpx/runtime/actions/continuation.hpp>
-#include <hpx/runtime_local/config_entry.hpp>
 #include <hpx/runtime/message_handler_fwd.hpp>
 #include <hpx/runtime/naming/resolver_client.hpp>
 #include <hpx/runtime/parcelset/parcelhandler.hpp>
 #include <hpx/runtime/parcelset/policies/message_handler.hpp>
 #include <hpx/runtime/parcelset/static_parcelports.hpp>
 #include <hpx/runtime_configuration/runtime_configuration.hpp>
-#include <hpx/modules/threadmanager.hpp>
+#include <hpx/runtime_local/config_entry.hpp>
 #include <hpx/state.hpp>
-#include <hpx/modules/string_util.hpp>
 #include <hpx/synchronization/counting_semaphore.hpp>
 #include <hpx/thread_support/unlock_guard.hpp>
 #include <hpx/threading_base/external_timer.hpp>
@@ -57,6 +58,7 @@
 #include <mutex>
 #include <sstream>
 #include <string>
+#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -92,13 +94,10 @@ namespace hpx { namespace parcelset
         lcos::local::promise<void> promise;
         future<void> sent_future = promise.get_future();
         put_parcel(
-            std::move(p)
-          , [&promise](boost::system::error_code const&, parcel const&)
-            {
+            std::move(p), [&promise](std::error_code const&, parcel const&) {
                 promise.set_value();
-            }
-        );  // schedule parcel send
-        sent_future.get(); // wait for the parcel to be sent
+            });               // schedule parcel send
+        sent_future.get();    // wait for the parcel to be sent
     }
 
     parcelhandler::parcelhandler(util::runtime_configuration& cfg,
@@ -406,10 +405,10 @@ namespace hpx { namespace parcelset
         return result;
     }
 
-    namespace detail
-    {
-        void parcel_sent_handler(parcelhandler::write_handler_type & f, //-V669
-            boost::system::error_code const & ec, parcel const & p)
+    namespace detail {
+        void parcel_sent_handler(
+            parcelhandler::write_handler_type& f,    //-V669
+            std::error_code const& ec, parcel const& p)
         {
             // inform termination detection of a sent message
             if (!p.does_termination_detection())
@@ -701,25 +700,31 @@ namespace hpx { namespace parcelset
 
     ///////////////////////////////////////////////////////////////////////////
     // default callback for put_parcel
-    void default_write_handler(boost::system::error_code const& ec,
-        parcel const& p)
+    void default_write_handler(std::error_code const& ec, parcel const& p)
     {
 #if defined(HPX_HAVE_NETWORKING)
-        if (ec) {
+        if (ec)
+        {
             // If we are in a stopped state, ignore some errors
             if (hpx::is_stopped_or_shutting_down())
             {
-                if (ec == boost::asio::error::connection_aborted ||
-                    ec == boost::asio::error::connection_reset ||
-                    ec == boost::asio::error::broken_pipe ||
-                    ec == boost::asio::error::not_connected ||
-                    ec == boost::asio::error::eof)
+                if (compat_error_code::equal(
+                        ec, boost::asio::error::connection_aborted) ||
+                    compat_error_code::equal(
+                        ec, boost::asio::error::connection_reset) ||
+                    compat_error_code::equal(
+                        ec, boost::asio::error::broken_pipe) ||
+                    compat_error_code::equal(
+                        ec, boost::asio::error::not_connected) ||
+                    compat_error_code::equal(ec, boost::asio::error::eof))
                 {
                     return;
                 }
             }
-            else if (hpx::tolerate_node_faults()) {
-                if (ec == boost::asio::error::connection_reset)
+            else if (hpx::tolerate_node_faults())
+            {
+                if (compat_error_code::equal(
+                        ec, boost::asio::error::connection_reset))
                     return;
             }
 

@@ -18,6 +18,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -66,7 +67,7 @@ struct HPX_EXPORT primary_namespace
 
 #if defined(HPX_HAVE_NETWORKING)
     void route(parcelset::parcel && p,
-        util::function_nonser<void(boost::system::error_code const&,
+        util::function_nonser<void(std::error_code const&,
         parcelset::parcel const&)> && f);
 #endif
 

@@ -10,6 +10,7 @@
 
 #include <atomic>
 #include <cstddef>
+#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -34,7 +35,7 @@ bool is_test_action(hpx::parcelset::parcel const& p)
 #endif
 }
 
-void write_handler(boost::system::error_code const&,
+void write_handler(std::error_code const&,
     hpx::parcelset::parcel const& p)
 {
     if (is_test_action(p))
