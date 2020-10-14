@@ -89,6 +89,13 @@ namespace hpx { namespace serialization {
                 err_value = e.code().value();
                 err_message = e.code().message();
             }
+            catch (std::system_error const& e)
+            {
+                type = hpx::util::std_system_error;
+                what = e.what();
+                err_value = e.code().value();
+                err_message = e.code().message();
+            }
             catch (std::runtime_error const& e)
             {
                 type = hpx::util::std_runtime_error;
@@ -157,7 +164,8 @@ namespace hpx { namespace serialization {
                 ar & err_value;
                 // clang-format on
             }
-            else if (hpx::util::boost_system_error == type)
+            else if (hpx::util::boost_system_error == type ||
+                hpx::util::std_system_error == type)
             {
                 // clang-format off
                 ar & err_value & err_message;
@@ -189,7 +197,8 @@ namespace hpx { namespace serialization {
                 ar & err_value;
                 // clang-format on
             }
-            else if (hpx::util::boost_system_error == type)
+            else if (hpx::util::boost_system_error == type ||
+                hpx::util::std_system_error == type)
             {
                 // clang-format off
                 ar & err_value& err_message;
@@ -257,6 +266,14 @@ namespace hpx { namespace serialization {
                 e = hpx::detail::get_exception(
                     boost::system::system_error(err_value,
                         boost::system::system_category(), err_message),
+                    throw_function_, throw_file_, throw_line_);
+                break;
+
+            // std::system_error
+            case hpx::util::std_system_error:
+                e = hpx::detail::get_exception(
+                    std::system_error(
+                        err_value, std::system_category(), err_message),
                     throw_function_, throw_file_, throw_line_);
                 break;
 

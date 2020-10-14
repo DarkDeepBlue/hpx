@@ -304,6 +304,8 @@ namespace hpx { namespace detail {
     template HPX_EXPORT std::exception_ptr construct_exception(
         boost::system::system_error const&, hpx::exception_info info);
     template HPX_EXPORT std::exception_ptr construct_exception(
+        std::system_error const&, hpx::exception_info info);
+    template HPX_EXPORT std::exception_ptr construct_exception(
         std::exception const&, hpx::exception_info info);
     template HPX_EXPORT std::exception_ptr construct_exception(
         hpx::detail::std_exception const&, hpx::exception_info info);
