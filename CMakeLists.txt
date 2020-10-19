@@ -48,7 +48,7 @@ endif()
 # ##############################################################################
 # project metadata
 # ##############################################################################
-project(HPX CXX C)
+project(HPX CXX)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
